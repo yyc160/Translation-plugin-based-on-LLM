@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "en-AI Translator",
+  "version": "1.0",
+  "description": "Intelligent translation plugin powered by advanced AI models",
+  "permissions": [
+    "contextMenus",
+    "storage"
+  ],
+  "host_permissions": [
+    "*://api.moonshot.cn/*",
+    "*://dashscope.aliyuncs.com/*",
+    "*://api.openai.com/*",
+    "*://api.anthropic.com/*"
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "manifest_version": 3,
+  "name": "cn-AI Translator",
+  "version": "1.0",
+  "description": "基于大模型的智能翻译插件 power by yyc160",
+  "permissions": [
+    "contextMenus",
+    "storage"
+  ],
+  "host_permissions": [
+    "*://api.moonshot.cn/*",
+    "*://dashscope.aliyuncs.com/*",
+    "*://api.openai.com/*",
+    "*://api.anthropic.com/*"
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"]
+    }
+  ]
+}

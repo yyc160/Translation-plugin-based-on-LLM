@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>AI Translator Settings</title>
+    <style>
+        body {
+            width: 320px;
+            padding: 15px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #333;
+            font-weight: 500;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        select {
+            background-color: white;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background-color 0.2s;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        button:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+        .tooltip {
+            position: absolute;
+            background: #333;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body>
+<div class="form-group">
+    <label for="modelProvider">Model Provider:</label>
+    <select id="modelProvider">
+        <option value="openai">OpenAI ChatGPT</option>
+        <option value="anthropic">Anthropic Claude</option>
+        <option value="moonshot">Moonshot</option>
+        <option value="dashscope">Qwen</option>
+    </select>
+</div>
+<div class="form-group">
+    <label for="modelVersion">Model Version:</label>
+    <select id="modelVersion">
+        <!-- Options will be populated dynamically -->
+    </select>
+</div>
+<div class="form-group">
+    <label for="apiKey">API Key:</label>
+    <input type="password" id="apiKey" placeholder="Enter your API key">
+    <span id="togglePassword" style="cursor: pointer; position: absolute; right: 25px; margin-top: -30px;">👁️</span>
+</div>
+<div class="form-group">
+    <label for="sourceLang">Source Language:</label>
+    <select id="sourceLang">
+        <option value="auto">Auto Detect</option>
+        <option value="en">English</option>
+        <option value="zh">Chinese</option>
+        <option value="ja">Japanese</option>
+        <option value="ko">Korean</option>
+        <option value="fr">French</option>
+        <option value="de">German</option>
+        <option value="es">Spanish</option>
+        <option value="it">Italian</option>
+        <option value="ru">Russian</option>
+        <option value="pt">Portuguese</option>
+        <option value="vi">Vietnamese</option>
+        <option value="th">Thai</option>
+        <option value="ar">Arabic</option>
+    </select>
+</div>
+<div class="form-group">
+    <label for="targetLang">Target Language:</label>
+    <select id="targetLang">
+        <option value="en">English</option>
+        <option value="zh">Chinese</option>
+        <option value="ja">Japanese</option>
+        <option value="ko">Korean</option>
+        <option value="fr">French</option>
+        <option value="de">German</option>
+        <option value="es">Spanish</option>
+        <option value="it">Italian</option>
+        <option value="ru">Russian</option>
+        <option value="pt">Portuguese</option>
+        <option value="vi">Vietnamese</option>
+        <option value="th">Thai</option>
+        <option value="ar">Arabic</option>
+    </select>
+</div>
+<button id="saveBtn">Save Settings</button>
+<script src="popup.js"></script>
+</body>
+</html>
