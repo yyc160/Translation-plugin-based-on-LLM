@@ -1,4 +1,4 @@
-// popup.js
+// 定义模型配置
 const MODEL_CONFIGS = {
     moonshot: {
         name: '月之暗面',
@@ -44,6 +44,14 @@ const MODEL_CONFIGS = {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
+    // 初始化函数
+    function initializeForm() {
+        const modelProvider = document.getElementById('modelProvider').value || 'moonshot';
+        updateModelVersions(modelProvider);
+        updateApiKeyLabel(modelProvider);
+        checkFormValidity();
+    }
+
     // 加载保存的设置
     chrome.storage.sync.get(['apiKey', 'sourceLang', 'targetLang', 'modelProvider', 'modelVersion'], (result) => {
         if (result.apiKey) {
@@ -57,28 +65,38 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (result.modelProvider) {
             document.getElementById('modelProvider').value = result.modelProvider;
-            updateModelVersions(result.modelProvider);
-        }
-        if (result.modelVersion && document.querySelector(`option[value="${result.modelVersion}"]`)) {
-            document.getElementById('modelVersion').value = result.modelVersion;
         }
 
-        // 初始化时更新API密钥标签
-        updateApiKeyLabel(result.modelProvider);
+        // 初始化表单
+        initializeForm();
+
+        // 设置模型版本（在更新模型列表之后）
+        if (result.modelVersion) {
+            const modelVersionSelect = document.getElementById('modelVersion');
+            setTimeout(() => {
+                if (document.querySelector(`option[value="${result.modelVersion}"]`)) {
+                    modelVersionSelect.value = result.modelVersion;
+                }
+            }, 0);
+        }
     });
 
-    // 监听模型提供商选择变化
+    // 监听模型提供商变化
     document.getElementById('modelProvider').addEventListener('change', (e) => {
         const provider = e.target.value;
         updateModelVersions(provider);
         updateApiKeyLabel(provider);
+        checkFormValidity();
     });
 
-    // 监听源语言和目标语言的变化
-    document.getElementById('sourceLang').addEventListener('change', validateLanguageSelection);
-    document.getElementById('targetLang').addEventListener('change', validateLanguageSelection);
+    // 监听所有输入变化
+    const inputs = ['apiKey', 'sourceLang', 'targetLang', 'modelVersion'];
+    inputs.forEach(id => {
+        document.getElementById(id).addEventListener('change', checkFormValidity);
+        document.getElementById(id).addEventListener('input', checkFormValidity);
+    });
 
-    // 更新模型版本选项
+    // 更新模型版本列表
     function updateModelVersions(provider) {
         const modelVersionSelect = document.getElementById('modelVersion');
         modelVersionSelect.innerHTML = '';
@@ -104,39 +122,23 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 验证语言选择
-    function validateLanguageSelection() {
+    // 验证表单
+    function checkFormValidity() {
+        const apiKey = document.getElementById('apiKey').value.trim();
         const sourceLang = document.getElementById('sourceLang').value;
         const targetLang = document.getElementById('targetLang').value;
         const saveBtn = document.getElementById('saveBtn');
 
-        if (sourceLang !== 'auto' && sourceLang === targetLang) {
-            alert('源语言和目标语言不能相同');
-            saveBtn.disabled = true;
-            saveBtn.style.opacity = '0.5';
-        } else {
-            saveBtn.disabled = false;
-            saveBtn.style.opacity = '1';
-        }
+        const isValid = apiKey !== '' &&
+            (sourceLang === 'auto' || sourceLang !== targetLang);
+
+        saveBtn.disabled = !isValid;
+        saveBtn.style.opacity = isValid ? '1' : '0.5';
+
+        return isValid;
     }
 
-    // 添加语言交换按钮事件
-    const swapButton = document.getElementById('swapLang');
-    if (swapButton) {
-        swapButton.addEventListener('click', () => {
-            const sourceLang = document.getElementById('sourceLang');
-            const targetLang = document.getElementById('targetLang');
-
-            // 只在源语言不是auto时才交换
-            if (sourceLang.value !== 'auto') {
-                const temp = sourceLang.value;
-                sourceLang.value = targetLang.value;
-                targetLang.value = temp;
-            }
-        });
-    }
-
-    // 显示/隐藏API密钥
+    // API密钥可见性切换
     const togglePassword = document.getElementById('togglePassword');
     if (togglePassword) {
         togglePassword.addEventListener('click', () => {
@@ -147,52 +149,24 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // API密钥输入验证
-    document.getElementById('apiKey').addEventListener('input', (e) => {
-        const apiKey = e.target.value.trim();
-        const saveBtn = document.getElementById('saveBtn');
-
-        if (apiKey === '') {
-            saveBtn.disabled = true;
-            saveBtn.style.opacity = '0.5';
-        } else {
-            saveBtn.disabled = false;
-            saveBtn.style.opacity = '1';
-        }
-    });
-
     // 保存设置
     document.getElementById('saveBtn').addEventListener('click', () => {
-        const apiKey = document.getElementById('apiKey').value.trim();
-        const sourceLang = document.getElementById('sourceLang').value;
-        const targetLang = document.getElementById('targetLang').value;
-        const modelProvider = document.getElementById('modelProvider').value;
-        const modelVersion = document.getElementById('modelVersion').value;
-
-        // 验证API密钥
-        if (!apiKey) {
-            alert('请输入API密钥');
+        if (!checkFormValidity()) {
             return;
         }
 
-        // 验证语言选择
-        if (sourceLang !== 'auto' && sourceLang === targetLang) {
-            alert('源语言和目标语言不能相同');
-            return;
-        }
+        const settings = {
+            apiKey: document.getElementById('apiKey').value.trim(),
+            sourceLang: document.getElementById('sourceLang').value,
+            targetLang: document.getElementById('targetLang').value,
+            modelProvider: document.getElementById('modelProvider').value,
+            modelVersion: document.getElementById('modelVersion').value
+        };
 
-        // 保存设置到storage
-        chrome.storage.sync.set({
-            apiKey: apiKey,
-            sourceLang: sourceLang,
-            targetLang: targetLang,
-            modelProvider: modelProvider,
-            modelVersion: modelVersion
-        }, () => {
-            // 显示保存成功提示
+        chrome.storage.sync.set(settings, () => {
             const saveBtn = document.getElementById('saveBtn');
             const originalText = saveBtn.textContent;
-            saveBtn.textContent = '保存成功！';
+            saveBtn.textContent = '设置已保存！';
             saveBtn.style.backgroundColor = '#45a049';
             saveBtn.disabled = true;
 
@@ -200,11 +174,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 saveBtn.textContent = originalText;
                 saveBtn.style.backgroundColor = '#4CAF50';
                 saveBtn.disabled = false;
+                checkFormValidity();
             }, 2000);
         });
     });
 
-    // 添加键盘快捷键
+    // 键盘快捷键
     document.addEventListener('keydown', (e) => {
         // Ctrl/Cmd + S 保存设置
         if ((e.ctrlKey || e.metaKey) && e.key === 's') {
@@ -220,30 +195,4 @@ document.addEventListener('DOMContentLoaded', () => {
             window.close();
         }
     });
-
-    // 初始状态检查
-    function checkInitialState() {
-        const apiKey = document.getElementById('apiKey').value.trim();
-        const saveBtn = document.getElementById('saveBtn');
-
-        if (!apiKey) {
-            saveBtn.disabled = true;
-            saveBtn.style.opacity = '0.5';
-        }
-    }
-
-    // 执行初始状态检查
-    checkInitialState();
-
-    // 错误处理函数
-    function showError(message) {
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'error-message';
-        errorDiv.textContent = message;
-        document.body.appendChild(errorDiv);
-
-        setTimeout(() => {
-            errorDiv.remove();
-        }, 3000);
-    }
 });

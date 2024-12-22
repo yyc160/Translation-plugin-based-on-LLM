@@ -1,23 +1,5 @@
+// Model configurations
 const MODEL_CONFIGS = {
-    openai: {
-        name: 'ChatGPT',
-        models: {
-            'gpt-4': 'GPT-4',
-            'gpt-4-turbo-preview': 'GPT-4 Turbo',
-            'gpt-3.5-turbo': 'GPT-3.5 Turbo'
-        },
-        apiEndpoint: 'https://api.openai.com/v1/chat/completions'
-    },
-    anthropic: {
-        name: 'Claude',
-        models: {
-            'claude-3-opus-20240229': 'Claude 3 Opus',
-            'claude-3-sonnet-20240229': 'Claude 3 Sonnet',
-            'claude-3-haiku-20240307': 'Claude 3 Haiku',
-            'claude-2.1': 'Claude 2.1'
-        },
-        apiEndpoint: 'https://api.anthropic.com/v1/messages'
-    },
     moonshot: {
         name: 'Moonshot',
         models: {
@@ -39,10 +21,37 @@ const MODEL_CONFIGS = {
             'qwen2.5-7b-instruct': 'Qwen 2.5 7B'
         },
         apiEndpoint: 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'
+    },
+    openai: {
+        name: 'ChatGPT',
+        models: {
+            'gpt-4': 'GPT-4',
+            'gpt-4-turbo-preview': 'GPT-4 Turbo',
+            'gpt-3.5-turbo': 'GPT-3.5 Turbo'
+        },
+        apiEndpoint: 'https://api.openai.com/v1/chat/completions'
+    },
+    anthropic: {
+        name: 'Claude',
+        models: {
+            'claude-3-opus-20240229': 'Claude 3 Opus',
+            'claude-3-sonnet-20240229': 'Claude 3 Sonnet',
+            'claude-3-haiku-20240307': 'Claude 3 Haiku',
+            'claude-2.1': 'Claude 2.1'
+        },
+        apiEndpoint: 'https://api.anthropic.com/v1/messages'
     }
 };
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Initialize form function
+    function initializeForm() {
+        const modelProvider = document.getElementById('modelProvider').value || 'moonshot';
+        updateModelVersions(modelProvider);
+        updateApiKeyLabel(modelProvider);
+        checkFormValidity();
+    }
+
     // Load saved settings
     chrome.storage.sync.get(['apiKey', 'sourceLang', 'targetLang', 'modelProvider', 'modelVersion'], (result) => {
         if (result.apiKey) {
@@ -56,14 +65,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if (result.modelProvider) {
             document.getElementById('modelProvider').value = result.modelProvider;
-            updateModelVersions(result.modelProvider);
-        }
-        if (result.modelVersion && document.querySelector(`option[value="${result.modelVersion}"]`)) {
-            document.getElementById('modelVersion').value = result.modelVersion;
         }
 
-        // Initialize API key label
-        updateApiKeyLabel(result.modelProvider);
+        // Initialize form
+        initializeForm();
+
+        // Set model version (after updating model list)
+        if (result.modelVersion) {
+            const modelVersionSelect = document.getElementById('modelVersion');
+            setTimeout(() => {
+                if (document.querySelector(`option[value="${result.modelVersion}"]`)) {
+                    modelVersionSelect.value = result.modelVersion;
+                }
+            }, 0);
+        }
     });
 
     // Listen for model provider changes
@@ -71,11 +86,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const provider = e.target.value;
         updateModelVersions(provider);
         updateApiKeyLabel(provider);
+        checkFormValidity();
     });
 
-    // Listen for language selection changes
-    document.getElementById('sourceLang').addEventListener('change', validateLanguageSelection);
-    document.getElementById('targetLang').addEventListener('change', validateLanguageSelection);
+    // Listen for all input changes
+    const inputs = ['apiKey', 'sourceLang', 'targetLang', 'modelVersion'];
+    inputs.forEach(id => {
+        document.getElementById(id).addEventListener('change', checkFormValidity);
+        document.getElementById(id).addEventListener('input', checkFormValidity);
+    });
 
     // Update model versions function
     function updateModelVersions(provider) {
@@ -103,20 +122,20 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Language selection validation
-    function validateLanguageSelection() {
+    // Form validation function
+    function checkFormValidity() {
+        const apiKey = document.getElementById('apiKey').value.trim();
         const sourceLang = document.getElementById('sourceLang').value;
         const targetLang = document.getElementById('targetLang').value;
         const saveBtn = document.getElementById('saveBtn');
 
-        if (sourceLang !== 'auto' && sourceLang === targetLang) {
-            alert('Source and target languages cannot be the same');
-            saveBtn.disabled = true;
-            saveBtn.style.opacity = '0.5';
-        } else {
-            saveBtn.disabled = false;
-            saveBtn.style.opacity = '1';
-        }
+        const isValid = apiKey !== '' &&
+            (sourceLang === 'auto' || sourceLang !== targetLang);
+
+        saveBtn.disabled = !isValid;
+        saveBtn.style.opacity = isValid ? '1' : '0.5';
+
+        return isValid;
     }
 
     // Toggle password visibility
@@ -130,49 +149,21 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // API key input validation
-    document.getElementById('apiKey').addEventListener('input', (e) => {
-        const apiKey = e.target.value.trim();
-        const saveBtn = document.getElementById('saveBtn');
-
-        if (apiKey === '') {
-            saveBtn.disabled = true;
-            saveBtn.style.opacity = '0.5';
-        } else {
-            saveBtn.disabled = false;
-            saveBtn.style.opacity = '1';
-        }
-    });
-
     // Save settings
     document.getElementById('saveBtn').addEventListener('click', () => {
-        const apiKey = document.getElementById('apiKey').value.trim();
-        const sourceLang = document.getElementById('sourceLang').value;
-        const targetLang = document.getElementById('targetLang').value;
-        const modelProvider = document.getElementById('modelProvider').value;
-        const modelVersion = document.getElementById('modelVersion').value;
-
-        // Validate API key
-        if (!apiKey) {
-            alert('Please enter an API key');
+        if (!checkFormValidity()) {
             return;
         }
 
-        // Validate language selection
-        if (sourceLang !== 'auto' && sourceLang === targetLang) {
-            alert('Source and target languages cannot be the same');
-            return;
-        }
+        const settings = {
+            apiKey: document.getElementById('apiKey').value.trim(),
+            sourceLang: document.getElementById('sourceLang').value,
+            targetLang: document.getElementById('targetLang').value,
+            modelProvider: document.getElementById('modelProvider').value,
+            modelVersion: document.getElementById('modelVersion').value
+        };
 
-        // Save settings to storage
-        chrome.storage.sync.set({
-            apiKey: apiKey,
-            sourceLang: sourceLang,
-            targetLang: targetLang,
-            modelProvider: modelProvider,
-            modelVersion: modelVersion
-        }, () => {
-            // Show success message
+        chrome.storage.sync.set(settings, () => {
             const saveBtn = document.getElementById('saveBtn');
             const originalText = saveBtn.textContent;
             saveBtn.textContent = 'Settings Saved!';
@@ -183,11 +174,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 saveBtn.textContent = originalText;
                 saveBtn.style.backgroundColor = '#4CAF50';
                 saveBtn.disabled = false;
+                checkFormValidity();
             }, 2000);
         });
     });
 
-    // Add keyboard shortcuts
+    // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
         // Ctrl/Cmd + S to save settings
         if ((e.ctrlKey || e.metaKey) && e.key === 's') {
@@ -203,30 +195,4 @@ document.addEventListener('DOMContentLoaded', () => {
             window.close();
         }
     });
-
-    // Initial state check
-    function checkInitialState() {
-        const apiKey = document.getElementById('apiKey').value.trim();
-        const saveBtn = document.getElementById('saveBtn');
-
-        if (!apiKey) {
-            saveBtn.disabled = true;
-            saveBtn.style.opacity = '0.5';
-        }
-    }
-
-    // Error handling function
-    function showError(message) {
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'error-message';
-        errorDiv.textContent = message;
-        document.body.appendChild(errorDiv);
-
-        setTimeout(() => {
-            errorDiv.remove();
-        }, 3000);
-    }
-
-    // Run initial state check
-    checkInitialState();
 });
